@@ -20,8 +20,8 @@ class DataValidation:
     
     def preprocess_data(self):
         try:
-            ratings = pd.read_csv(self.data_validation_config.ratings_csv_file)
-            books = pd.read_csv(self.data_validation_config.books_csv_file)
+            ratings = pd.read_csv(self.data_validation_config.ratings_csv_file, sep=";", encoding='latin-1')
+            books = pd.read_csv(self.data_validation_config.books_csv_file, sep=";", encoding='latin-1', on_bad_lines='skip',  low_memory=False)
             
             logging.info(f" Shape of ratings data file: {ratings.shape}")
             logging.info(f" Shape of books data file: {books.shape}")
