@@ -1,3 +1,4 @@
+# Python
 .env
 .venv
 env/
@@ -5,4 +6,27 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# Notebooks / dev files
 notebook/
+*.ipynb
+
+# Git
+.git/
+.gitignore
+
+# Frontend build artifacts (built separately in frontend/Dockerfile.frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs (mounted as volume in docker-compose)
+backend/logs/
+
+# VS Code
+.vscode/
