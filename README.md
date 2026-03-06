@@ -169,3 +169,23 @@ cd book-recommendation-system-new
 
 docker-compose up --build -d
 ```
+
+---
+
+## Model Evaluation
+
+The collaborative filtering model uses **K-Nearest Neighbors (KNN)** with **Cosine Similarity** to overcome the extreme sparsity of the Book-Crossing dataset.
+
+We test the model using **Leave-One-Out Offline Evaluation**. For a random sample of users, we take one book they highly rated (7/10 or higher), ask the model for 5 recommendations, and check if the model successfully recommends *other* books that the same user also highly rated.
+
+### Evaluation Results (Top-5 Recommendations)
+* **Hit Ratio @ 5:** `23.40%` — For over 23% of users, the model successfully guesses at least one of their other favorite books.
+* **Precision @ 5:** `8.64%` — Out of the 5 books recommended, an average of ~9% are exact ground-truth favorites.
+* **Recall @ 5:** `6.48%` — Our Top-5 list successfully catches over 6% of all the books a user has ever loved.
+
+*(Note: In recommendation systems with sparse data, true Precision/Recall is often much higher than measured, as users haven't read/rated most of the good recommendations yet — known as the False Negative problem).*
+
+Run the offline evaluation yourself:
+```bash
+python backend/evaluate.py
+```

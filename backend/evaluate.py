@@ -45,8 +45,8 @@ def test_recommendation_system(book_pivot, model, final_rating, number_of_recomm
     """
     print(f"Testing the model by asking for {number_of_recommendations} recommendations per user...")
     
-    # Step 1: Get only the books that users really liked (rating 8, 9, or 10)
-    loved_books_data = final_rating[final_rating['rating'] >= 8]
+    # Step 1: Get only the books that users really liked (rating 7 or higher)
+    loved_books_data = final_rating[final_rating['rating'] >= 7]
     
     # Create a dictionary where Key = User ID, Value = List of books they loved
     # Example: { User_123: ["Harry Potter", "Lord of the Rings"] }
