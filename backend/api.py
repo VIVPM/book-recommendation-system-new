@@ -27,17 +27,37 @@ app.add_middleware(
 )
 
 # -------------------------------------------------------------------
-# Helpers
+# Startup Event
 # -------------------------------------------------------------------
 
 def _load_artifacts():
     """Load recommendation artifacts from disk."""
     config = AppConfiguration().get_recommendation_config()
-    book_pivot  = pickle.load(open(config.book_pivot_serialized_objects, "rb"))
-    final_rating = pickle.load(open(config.final_rating_serialized_objects, "rb"))
-    model        = pickle.load(open(config.trained_model_path, "rb"))
-    book_names   = pickle.load(open(config.book_name_serialized_objects, "rb"))
-    return book_pivot, final_rating, model, book_names
+    try:
+        book_pivot  = pickle.load(open(config.book_pivot_serialized_objects, "rb"))
+        final_rating = pickle.load(open(config.final_rating_serialized_objects, "rb"))
+        model        = pickle.load(open(config.trained_model_path, "rb"))
+        book_names   = pickle.load(open(config.book_name_serialized_objects, "rb"))
+        return book_pivot, final_rating, model, book_names
+    except FileNotFoundError:
+        logging.warning("Artifacts not found on startup. Model needs to be trained.")
+        return None, None, None, None
+
+@app.on_event("startup")
+async def startup():
+    """Load artifacts into memory once when server starts."""
+    logging.info("Starting up FastAPI server...")
+    logging.info("Loading ML artifacts into memory...")
+    artifacts = _load_artifacts()
+    app.state.artifacts = artifacts
+    if artifacts[0] is not None:
+        logging.info("Artifacts loaded successfully!")
+    else:
+        logging.warning("No artifacts loaded. Training required.")
+
+# -------------------------------------------------------------------
+# Helpers
+# -------------------------------------------------------------------
 
 
 def _fetch_poster(suggestion, book_pivot, final_rating):
@@ -71,12 +91,23 @@ class RecommendResponse(BaseModel):
 # Routes
 # -------------------------------------------------------------------
 
+@app.get("/health", summary="Health Check")
+def health():
+    """Health check for Docker/production monitoring."""
+    model_loaded = hasattr(app.state, 'artifacts') and app.state.artifacts[2] is not None
+    return {
+        "status": "ok",
+        "model_loaded": model_loaded
+    }
+
 @app.get("/books", summary="Get all book names for the dropdown")
 def get_books():
     """Returns list of all book names available for recommendation."""
     try:
-        config = AppConfiguration().get_recommendation_config()
-        book_names = pickle.load(open(config.book_name_serialized_objects, "rb"))
+        if not hasattr(app.state, 'artifacts') or app.state.artifacts[3] is None:
+            return {"books": []}
+            
+        book_names = app.state.artifacts[3]
         return {"books": list(book_names)}
     except Exception as e:
         logging.error(f"Error loading book names: {e}")
@@ -89,13 +120,16 @@ def recommend(request: RecommendRequest):
     Given a book name, returns 5 similar book recommendations with poster images.
     """
     try:
-        book_pivot, final_rating, model, book_names = _load_artifacts()
+        book_pivot, final_rating, model, book_names = app.state.artifacts
+        
+        if book_pivot is None:
+             raise HTTPException(status_code=400, detail="Model is not trained yet. Please hit /train first.")
 
         if request.book_name not in book_pivot.index:
             raise HTTPException(status_code=404, detail=f"Book '{request.book_name}' not found.")
 
         book_id = np.where(book_pivot.index == request.book_name)[0][0]
-        _, suggestion = model.kneighbors(
+        distances, suggestion = model.kneighbors(
             book_pivot.iloc[book_id, :].values.reshape(1, -1), n_neighbors=6
         )
 
@@ -127,7 +161,11 @@ def train():
         logging.info("Training pipeline triggered via API.")
         pipeline = TrainingPipeline()
         pipeline.start_training_pipeline()
-        logging.info("Training pipeline completed via API.")
+        
+        # Reload artifacts into memory after training
+        app.state.artifacts = _load_artifacts()
+        
+        logging.info("Training pipeline completed and new artifacts loaded via API.")
         return {"message": "Training completed successfully."}
     except Exception as e:
         logging.error(f"Training pipeline error: {e}")
