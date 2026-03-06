@@ -27,7 +27,7 @@ book-recommendation-system-new/
 
 ## Pipeline Workflow
 
-`config.yaml` → `entity` → `config/configuration.py` → `components` → `pipeline` → `api.py`
+`config.yaml` → `entity` → `config/configuration.py` → `components` → `pipeline` → `backend/api.py` → `frontend/`
 
 ---
 

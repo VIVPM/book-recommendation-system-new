@@ -5,4 +5,5 @@ PyYAML
 streamlit
 fastapi
 uvicorn
+
 -e .
