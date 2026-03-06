@@ -22,7 +22,7 @@ class ModelTrainer:
             book_pivot = pickle.load(open(self.model_trainer_config.transformed_data_file_dir,'rb'))
             book_sparse = csr_matrix(book_pivot)
             #Training model
-            model = NearestNeighbors(algorithm= 'brute')
+            model = NearestNeighbors(metric='cosine', algorithm='brute')
             model.fit(book_sparse)
 
             #Saving model object for recommendations
