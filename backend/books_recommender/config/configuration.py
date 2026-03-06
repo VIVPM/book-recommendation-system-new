@@ -17,7 +17,7 @@ class AppConfiguration:
     def get_data_ingestion_config(self) -> DataIngestionConfig:
         try:
             data_ingestion_config = self.configs_info['data_ingestion_config']
-            artifacts_dir = self.configs_info['artifacts_config']['artifacts_dir']
+            artifacts_dir = os.path.join(ROOT_DIR, self.configs_info['artifacts_config']['artifacts_dir'])
             dataset_dir = data_ingestion_config['dataset_dir']
 
             ingested_data_dir = os.path.join(artifacts_dir, dataset_dir, data_ingestion_config['ingested_dir'])
@@ -40,7 +40,7 @@ class AppConfiguration:
             data_validation_config = self.configs_info['data_validation_config']
             data_ingestion_config = self.configs_info['data_ingestion_config']
             dataset_dir = data_ingestion_config['dataset_dir']
-            artifacts_dir = self.configs_info['artifacts_config']['artifacts_dir']
+            artifacts_dir = os.path.join(ROOT_DIR, self.configs_info['artifacts_config']['artifacts_dir'])
             books_csv_file = data_validation_config['books_csv_file']
             ratings_csv_file = data_validation_config['ratings_csv_file']
 
@@ -68,7 +68,7 @@ class AppConfiguration:
             data_validation_config = self.configs_info['data_validation_config']
             data_ingestion_config = self.configs_info['data_ingestion_config']
             dataset_dir = data_ingestion_config['dataset_dir']
-            artifacts_dir = self.configs_info['artifacts_config']['artifacts_dir']
+            artifacts_dir = os.path.join(ROOT_DIR, self.configs_info['artifacts_config']['artifacts_dir'])
           
             clean_data_file_path = os.path.join(artifacts_dir, dataset_dir, data_validation_config['clean_data_dir'],'clean_data.csv')
             transformed_data_dir = os.path.join(artifacts_dir, dataset_dir, data_transformation_config['transformed_data_dir'])
@@ -90,7 +90,7 @@ class AppConfiguration:
             data_transformation_config = self.configs_info['data_transformation_config']
             data_ingestion_config = self.configs_info['data_ingestion_config']
             dataset_dir = data_ingestion_config['dataset_dir']
-            artifacts_dir = self.configs_info['artifacts_config']['artifacts_dir']
+            artifacts_dir = os.path.join(ROOT_DIR, self.configs_info['artifacts_config']['artifacts_dir'])
 
           
            
@@ -116,7 +116,7 @@ class AppConfiguration:
             model_trainer_config = self.configs_info['model_trainer_config']
             data_validation_config = self.configs_info['data_validation_config']
             trained_model_name = model_trainer_config['trained_model_name']
-            artifacts_dir = self.configs_info['artifacts_config']['artifacts_dir']
+            artifacts_dir = os.path.join(ROOT_DIR, self.configs_info['artifacts_config']['artifacts_dir'])
             trained_model_dir = os.path.join(artifacts_dir, model_trainer_config['trained_model_dir'])
             poster_api = recommendation_config['poster_api_url']
             

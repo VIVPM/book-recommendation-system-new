@@ -4,8 +4,7 @@ from datetime import datetime
 
 
 # Creating logs directory to store log in files
-LOG_DIR = "logs"
-LOG_DIR = os.path.join(os.getcwd(), LOG_DIR)
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs")
 
 #Creating LOG_DIR if it does not exists.
 os.makedirs(LOG_DIR, exist_ok=True)

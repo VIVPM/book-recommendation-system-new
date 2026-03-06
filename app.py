@@ -1,5 +1,9 @@
 import os
 import sys
+
+# books_recommender package is inside backend/ — add it to path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+
 import pickle
 import streamlit as st
 import numpy as np
@@ -107,7 +111,7 @@ if __name__ == "__main__":
     if st.button('Train Recommender System'):
         obj.train_engine()
 
-    book_names = pickle.load(open(os.path.join('artifacts/serialized_objects','book_names.pkl') ,'rb'))
+    book_names = pickle.load(open(os.path.join('backend', 'artifacts', 'serialized_objects', 'book_names.pkl'), 'rb'))
     selected_books = st.selectbox(
         "Type or select a book from the dropdown",
         book_names)
