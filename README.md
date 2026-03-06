@@ -102,13 +102,35 @@ newgrp docker
 git clone https://github.com/VIVPM/book-recommendation-system-new.git
 cd book-recommendation-system-new
 
-docker-compose up --build
+docker-compose up --build        # first time (builds images + starts)
+# or
+docker-compose up -d             # run in background (detached)
 ```
 
 | Service  | URL |
 |----------|-----|
 | Backend  | http://localhost:8000 |
 | Frontend | http://localhost:5173 |
+
+### Run containers individually (without docker-compose)
+
+**Backend:**
+```bash
+# Build
+docker build -t VIVPM/bookapp-backend:latest ./backend
+
+# Run
+docker run -d -p 8000:8000 VIVPM/bookapp-backend:latest
+```
+
+**Frontend:**
+```bash
+# Build
+docker build -t VIVPM/bookapp-frontend:latest ./frontend
+
+# Run
+docker run -d -p 5173:5173 VIVPM/bookapp-frontend:latest
+```
 
 ### Useful Docker commands
 
