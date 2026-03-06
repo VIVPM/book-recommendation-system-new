@@ -1,110 +1,149 @@
-# End-to-End-Book-Recommender-System
+# End-to-End Book Recommender System
 
-## Workflow
+A collaborative filtering book recommendation system built with KNN on the Book-Crossing dataset. Features a FastAPI backend and a React (Vite) frontend.
 
-- config.yaml
-- entity
-- config/configuration.py
-- components
-- pipeline
-- main.py
-- app.py
+## Project Structure
 
-
-# How to run?
-### STEPS:
-
-Clone the repository
-
-```bash
-https://github.com/entbappy/End-to-End-Book-Recommender-System.git
 ```
-### STEP 01- Create a conda environment after opening the repository
-
-```bash
-conda create -n books python=3.7.10 -y
+book-recommendation-system-new/
+├── backend/
+│   ├── api.py                  # FastAPI server
+│   ├── books_recommender/      # ML pipeline package
+│   │   ├── components/         # Pipeline stages
+│   │   ├── config/
+│   │   ├── pipeline/
+│   │   └── ...
+│   ├── artifacts/              # Generated model & data files
+│   ├── config/config.yaml
+│   └── logs/
+├── frontend/                   # React (Vite) app
+│   ├── src/
+│   └── Dockerfile.frontend
+├── main.py                     # Run training pipeline directly
+├── requirements.txt
+├── Dockerfile
+└── docker-compose.yaml
 ```
 
+## Pipeline Workflow
+
+`config.yaml` → `entity` → `config/configuration.py` → `components` → `pipeline` → `api.py`
+
+---
+
+## How to Run (Local)
+
+### Step 1 — Clone the repository
+
 ```bash
+git clone https://github.com/VIVPM/book-recommendation-system-new.git
+cd book-recommendation-system-new
+```
+
+### Step 2 — Create and activate a conda environment
+
+```bash
+conda create -n books python=3.10 -y
 conda activate books
 ```
 
+### Step 3 — Install Python dependencies
 
-### STEP 02- install the requirements
 ```bash
 pip install -r requirements.txt
 ```
 
+### Step 4 — Run the FastAPI backend
 
-Now run,
 ```bash
-streamlit run app.py
+cd backend
+uvicorn api:app --reload --port 8000
 ```
 
+API available at: `http://localhost:8000`  
+Swagger docs at: `http://localhost:8000/docs`
 
-# Streamlit app Docker Image Deployment
-
-## 1. Login with your AWS console and launch an EC2 instance
-## 2. Run the following commands
-
-Note: Do the port mapping to this port:- 8501
+### Step 5 — Run the React frontend (new terminal)
 
 ```bash
-sudo apt-get update -y
+cd frontend
+npm install
+npm run dev
+```
 
-sudo apt-get upgrade
+Frontend available at: `http://localhost:5173`
 
-#Install Docker
+### (Optional) Train the model via CLI
+
+```bash
+# From project root
+python main.py
+```
+
+---
+
+## How to Run (Docker)
+
+### Step 1 — Install Docker and Docker Compose
+
+```bash
+sudo apt-get update -y && sudo apt-get upgrade -y
 
 curl -fsSL https://get.docker.com -o get-docker.sh
-
 sudo sh get-docker.sh
 
-sudo usermod -aG docker ubuntu
-
+sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-```bash
-git clone "your-project"
-```
+### Step 2 — Clone and build
 
 ```bash
-docker build -t entbappy/stapp:latest . 
+git clone https://github.com/VIVPM/book-recommendation-system-new.git
+cd book-recommendation-system-new
+
+docker-compose up --build
 ```
 
-```bash
-docker images -a  
-```
+| Service  | URL |
+|----------|-----|
+| Backend  | http://localhost:8000 |
+| Frontend | http://localhost:5173 |
+
+### Useful Docker commands
 
 ```bash
-docker run -d -p 8501:8501 entbappy/stapp 
+# View running containers
+docker ps
+
+# Stop all services
+docker-compose down
+
+# Push backend image
+docker login
+docker build -t VIVPM/bookapp:latest .
+docker push VIVPM/bookapp:latest
+
+# Pull image
+docker pull VIVPM/bookapp:latest
 ```
 
-```bash
-docker ps  
-```
+---
+
+## AWS EC2 Deployment
+
+> Port mapping required: **8000** (backend) and **5173** (frontend)
 
 ```bash
-docker stop container_id
-```
+sudo apt-get update -y && sudo apt-get upgrade -y
 
-```bash
-docker rm $(docker ps -a -q)
-```
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker ubuntu
+newgrp docker
 
-```bash
-docker login 
-```
+git clone https://github.com/VIVPM/book-recommendation-system-new.git
+cd book-recommendation-system-new
 
-```bash
-docker push entbappy/stapp:latest 
-```
-
-```bash
-docker rmi entbappy/stapp:latest
-```
-
-```bash
-docker pull entbappy/stapp
+docker-compose up --build -d
 ```
