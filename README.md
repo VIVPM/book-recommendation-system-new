@@ -8,29 +8,29 @@ A production-grade collaborative filtering book recommendation system built with
 graph LR
     %% Data Stage
     subgraph Data_Pipeline ["1. Data Pipeline"]
-        Raw["Book-Crossing Dataset\n(CSV files)"] -->|stage_00_data_ingestion.py| Raw2["Downloaded & Extracted Data"]
+        Raw["Book-Crossing Dataset<br/>(CSV files)"] -->|stage_00_data_ingestion.py| Raw2["Downloaded & Extracted Data"]
         Raw2 -->|stage_01_data_validation.py| Clean["Validated & Cleaned CSVs"]
-        Clean -->|stage_02_data_transformation.py| Pivot["Book-User Pivot Table\n(Sparse Matrix)"]
+        Clean -->|stage_02_data_transformation.py| Pivot["Book-User Pivot Table<br/>(Sparse Matrix)"]
     end
 
     %% Training Stage
     subgraph Training_Pipeline ["2. Model Training"]
-        Pivot -->|stage_03_model_training.py| KNN["KNN Model\n(Cosine Similarity)"]
-        KNN -->|evaluate.py| Metrics["Evaluation Metrics\n(Hit@5, NDCG, Precision, Recall)"]
-        KNN -->|Serialize| Artifacts["Local Artifacts\n(.pkl files)"]
+        Pivot -->|stage_03_model_training.py| KNN["KNN Model<br/>(Cosine Similarity)"]
+        KNN -->|evaluate.py| Metrics["Evaluation Metrics<br/>(Hit@5, NDCG, Precision, Recall)"]
+        KNN -->|Serialize| Artifacts["Local Artifacts<br/>(.pkl files)"]
     end
 
     %% MLflow / DagsHub Tracking
     subgraph MLTracking ["3. Experiment Tracking"]
-        Metrics -->|mlflow.log_metrics| DagsHub["DagsHub MLflow Server\n(Remote Registry)"]
+        Metrics -->|mlflow.log_metrics| DagsHub["DagsHub MLflow Server<br/>(Remote Registry)"]
         Artifacts -->|mlflow.log_artifacts| DagsHub
-        DagsHub -->|mlflow.sklearn.log_model| Registry["Model Registry\n(Book_Recommender_Model v1, v2 ...)"]
+        DagsHub -->|mlflow.sklearn.log_model| Registry["Model Registry<br/>(Book_Recommender_Model v1, v2 ...)"]
     end
 
     %% Serving Stage
     subgraph Deployment ["4. Inference & Serving"]
-        Registry -->|POST /models/load/version| API["FastAPI Backend\n(:8000)"]
-        API -->|/recommend| UI["React Dashboard\n(:5173)"]
+        Registry -->|POST /models/load/version| API["FastAPI Backend<br/>(:8000)"]
+        API -->|/recommend| UI["React Dashboard<br/>(:5173)"]
         UI -->|Model Sidebar| Registry
         User["End User"] -->|Interact| UI
     end
