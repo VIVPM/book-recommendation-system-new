@@ -27,8 +27,8 @@ def load_ml_components():
         final_rating = pickle.load(open(config.final_rating_serialized_objects, "rb"))
     except FileNotFoundError:
         print("\nError: Could not find the trained model or data files.")
-        print("Please train the model first by running `python main.py` or hitting the `/train` endpoint.")
-        sys.exit(1)
+        print("Please train the model first by hitting the `/train` endpoint.")
+        raise FileNotFoundError("Could not find the trained model or data files.")
         
     print("Successfully loaded everything!\n")
     return book_pivot, model, final_rating
@@ -60,6 +60,7 @@ def test_recommendation_system(book_pivot, model, final_rating, number_of_recomm
     total_hits = 0
     precision_scores = []
     recall_scores = []
+    ndcg_scores = []
     
     # To save time, we will only test 500 random users instead of thousands
     all_user_ids = list(users_and_their_favorite_books.keys())
@@ -117,17 +118,36 @@ def test_recommendation_system(book_pivot, model, final_rating, number_of_recomm
         # Recall: Out of all the books the user loved, what percentage did we find?
         recall = len(correct_guesses) / len(target_books)
         recall_scores.append(recall)
+        
+        # NDCG: Measures ranking quality (did we put the correct books at the top?)
+        # True relevance scores: 1 if the book was loved by the user, 0 if not
+        true_relevance = [[1 if book in target_books else 0 for book in recommended_books]]
+        
+        # Predicted scores: We want the model to rank index 0 highest, index 4 lowest
+        # We simulate this by giving decreasing scores based on position: [5, 4, 3, 2, 1]
+        predicted_scores = [[number_of_recommendations - i for i in range(number_of_recommendations)]]
+        
+        from sklearn.metrics import ndcg_score
+        
+        # Only calculate NDCG if there is at least one correct guess, otherwise it's 0
+        if len(correct_guesses) > 0:
+            ndcg = ndcg_score(true_relevance, predicted_scores)
+        else:
+            ndcg = 0.0
+            
+        ndcg_scores.append(ndcg)
             
         total_users_tested += 1
 
     # --- PRINT THE FINAL REPORT CARD ---
     if total_users_tested == 0:
         print("Error: Could not find enough users with multiple high ratings to test.")
-        return
+        return {"error": "Could not find enough users with multiple high ratings to test."}
         
     final_hit_ratio = total_hits / total_users_tested
     final_precision = np.mean(precision_scores)
     final_recall = np.mean(recall_scores)
+    final_ndcg = np.mean(ndcg_scores)
     
     print(f"\n" + "="*40)
     print(f"         EVALUATION REPORT CARD         ")
@@ -143,7 +163,20 @@ def test_recommendation_system(book_pivot, model, final_rating, number_of_recomm
     print(f"")
     print(f"Recall @ {number_of_recommendations}:    {(final_recall*100):.2f}%")
     print(f"  ↳ Meaning: Out of all the books a user loved, our Top {number_of_recommendations} list caught {(final_recall*100):.2f}% of them.")
+    print(f"")
+    print(f"NDCG @ {number_of_recommendations}:       {(final_ndcg*100):.2f}%")
+    print(f"  ↳ Meaning: Measures ranking quality. High score means correct books appeared at the very top of the list.")
     print(f"="*40)
+
+    return {
+        "users_tested": total_users_tested,
+        "total_hits": total_hits,
+        "hit_ratio": final_hit_ratio,
+        "precision": final_precision,
+        "recall": final_recall,
+        "ndcg": final_ndcg,
+        "recommendations_count": number_of_recommendations
+    }
 
 if __name__ == "__main__":
     book_pivot, model, final_rating = load_ml_components()

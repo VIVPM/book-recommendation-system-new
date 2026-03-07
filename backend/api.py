@@ -13,6 +13,7 @@ from books_recommender.config.configuration import AppConfiguration
 from books_recommender.pipeline.training_pipeline import TrainingPipeline
 from books_recommender.logger.log import logging
 from books_recommender.exception.exception_handler import AppException
+import evaluate
 
 # -------------------------------------------------------------------
 app = FastAPI(title="Book Recommender API", version="1.0.0")
@@ -165,8 +166,20 @@ def train():
         # Reload artifacts into memory after training
         app.state.artifacts = _load_artifacts()
         
+        # Run evaluation
+        logging.info("Running evaluation after training...")
+        try:
+            book_pivot, model, final_rating = evaluate.load_ml_components()
+            eval_results = evaluate.test_recommendation_system(book_pivot, model, final_rating, number_of_recommendations=5)
+        except Exception as eval_e:
+            logging.error(f"Evaluation failed: {eval_e}")
+            eval_results = {"error": str(eval_e)}
+        
         logging.info("Training pipeline completed and new artifacts loaded via API.")
-        return {"message": "Training completed successfully."}
+        return {
+            "message": "Training completed successfully.",
+            "evaluation": eval_results
+        }
     except Exception as e:
         logging.error(f"Training pipeline error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

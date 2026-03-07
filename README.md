@@ -180,6 +180,7 @@ We test the model using **Leave-One-Out Offline Evaluation**. For a random sampl
 
 ### Evaluation Results (Top-5 Recommendations)
 * **Hit Ratio @ 5:** `23.40%` — For over 23% of users, the model successfully guesses at least one of their other favorite books.
+* **NDCG @ 5:** `29.62%` — Measures ranking quality. High score means correct books appear at the very top of the 5 recommendations.
 * **Precision @ 5:** `8.64%` — Out of the 5 books recommended, an average of ~9% are exact ground-truth favorites.
 * **Recall @ 5:** `6.48%` — Our Top-5 list successfully catches over 6% of all the books a user has ever loved.
 
