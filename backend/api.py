@@ -1,7 +1,13 @@
 import os
 import sys
+
+# Fix Windows charmap encoding error with dagshub/mlflow emoji output
+os.environ['PYTHONUTF8'] = '1'
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 import pickle
 import numpy as np
+import shutil
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,6 +20,15 @@ from books_recommender.pipeline.training_pipeline import TrainingPipeline
 from books_recommender.logger.log import logging
 from books_recommender.exception.exception_handler import AppException
 import evaluate
+import mlflow
+from mlflow.tracking import MlflowClient
+import dagshub
+
+# Initialize DagsHub MLflow tracking globally
+try:
+    dagshub.init(repo_owner='vivpm99', repo_name='book-recommendation-system-new', mlflow=True)
+except Exception as e:
+    logging.warning(f"Could not initialize DagsHub globally: {e}")
 
 # -------------------------------------------------------------------
 app = FastAPI(title="Book Recommender API", version="1.0.0")
@@ -46,15 +61,11 @@ def _load_artifacts():
 
 @app.on_event("startup")
 async def startup():
-    """Load artifacts into memory once when server starts."""
+    """Start server with empty artifacts. DagsHub models must be explicitly loaded."""
     logging.info("Starting up FastAPI server...")
-    logging.info("Loading ML artifacts into memory...")
-    artifacts = _load_artifacts()
-    app.state.artifacts = artifacts
-    if artifacts[0] is not None:
-        logging.info("Artifacts loaded successfully!")
-    else:
-        logging.warning("No artifacts loaded. Training required.")
+    logging.info("Waiting for explicit model load from DagsHub via /models/load...")
+    app.state.artifacts = (None, None, None, None)
+    logging.warning("No artifacts loaded locally on boot to enforce DagsHub tracking.")
 
 # -------------------------------------------------------------------
 # Helpers
@@ -124,7 +135,7 @@ def recommend(request: RecommendRequest):
         book_pivot, final_rating, model, book_names = app.state.artifacts
         
         if book_pivot is None:
-             raise HTTPException(status_code=400, detail="Model is not trained yet. Please hit /train first.")
+             raise HTTPException(status_code=400, detail="Model is not loaded. Please select a model version from the sidebar or train a new one.")
 
         if request.book_name not in book_pivot.index:
             raise HTTPException(status_code=404, detail=f"Book '{request.book_name}' not found.")
@@ -160,28 +171,137 @@ def train():
     """
     try:
         logging.info("Training pipeline triggered via API.")
-        pipeline = TrainingPipeline()
-        pipeline.start_training_pipeline()
         
-        # Reload artifacts into memory after training
-        app.state.artifacts = _load_artifacts()
-        
-        # Run evaluation
-        logging.info("Running evaluation after training...")
-        try:
-            book_pivot, model, final_rating = evaluate.load_ml_components()
-            eval_results = evaluate.test_recommendation_system(book_pivot, model, final_rating, number_of_recommendations=5)
-        except Exception as eval_e:
-            logging.error(f"Evaluation failed: {eval_e}")
-            eval_results = {"error": str(eval_e)}
-        
+        with mlflow.start_run(run_name="Training_Pipeline"):
+            # Set a tag or basic parameter
+            mlflow.set_tag("version", "1.0.0")
+            
+            pipeline = TrainingPipeline()
+            pipeline.start_training_pipeline()
+            
+            # Reload artifacts into memory after training
+            app.state.artifacts = _load_artifacts()
+            
+            # Run evaluation
+            logging.info("Running evaluation after training...")
+            try:
+                book_pivot, model, final_rating = evaluate.load_ml_components()
+                eval_results = evaluate.test_recommendation_system(book_pivot, model, final_rating, number_of_recommendations=5)
+                
+                # Log metrics to MLflow
+                if "error" not in eval_results:
+                    mlflow.log_metric("users_tested", eval_results["users_tested"])
+                    mlflow.log_metric("total_hits", eval_results["total_hits"])
+                    mlflow.log_metric("hit_ratio", eval_results["hit_ratio"])
+                    mlflow.log_metric("precision", eval_results["precision"])
+                    mlflow.log_metric("recall", eval_results["recall"])
+                    mlflow.log_metric("ndcg", eval_results["ndcg"])
+                    
+            except Exception as eval_e:
+                logging.error(f"Evaluation failed: {eval_e}")
+                eval_results = {"error": str(eval_e)}
+            
+            # Upload the entire artifacts folder to the Experiment Run in DagsHub
+            artifacts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+            logging.info(f"Uploading artifacts folder to DagsHub Run: {artifacts_dir}")
+            mlflow.log_artifacts(artifacts_dir, artifact_path="model_artifacts")
+            
+            # Explicitly register just the KNN model to the DagsHub Model Registry
+            logging.info("Registering model.pkl to Model Registry...")
+            # We already loaded 'model' in the try block above, but if it failed, we shouldn't register
+            if "error" not in eval_results and model is not None:
+                mlflow.sklearn.log_model(
+                    sk_model=model,
+                    artifact_path="knn_model",
+                    registered_model_name="Book_Recommender_Model"
+                )
+            
         logging.info("Training pipeline completed and new artifacts loaded via API.")
         return {
-            "message": "Training completed successfully.",
+            "message": "Training completed successfully and tracked in DagsHub.",
             "evaluation": eval_results
         }
     except Exception as e:
         logging.error(f"Training pipeline error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/models", summary="Get all registered model versions")
+def get_models():
+    """Returns list of all available model versions from DagsHub Model Registry."""
+    try:
+        client = MlflowClient()
+        # Search for all versions of our registered model
+        versions = client.search_model_versions("name='Book_Recommender_Model'")
+        
+        result = []
+        for v in versions:
+            # Get the run to extract metrics
+            try:
+                run = client.get_run(v.run_id)
+                metrics = run.data.metrics
+            except Exception:
+                metrics = {}
+                
+            result.append({
+                "version": v.version,
+                "run_id": v.run_id,
+                "status": v.current_stage,
+                "metrics": metrics
+            })
+            
+        # Sort so newest version is first
+        result = sorted(result, key=lambda x: int(x["version"]), reverse=True)
+        return {"models": result}
+    except Exception as e:
+        logging.error(f"Error fetching models from registry: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/models/load/{version}", summary="Load a specific model version from DagsHub")
+def load_model(version: str):
+    """Downloads the full artifact directory for a specific model version and loads it into memory."""
+    try:
+        client = MlflowClient()
+        versions = client.search_model_versions("name='Book_Recommender_Model'")
+        target_v = next((v for v in versions if v.version == version), None)
+        
+        if not target_v:
+             raise HTTPException(status_code=404, detail=f"Model version {version} not found")
+             
+        run_id = target_v.run_id
+        logging.info(f"Downloading artifacts for version {version} (run_id: {run_id}) from DagsHub...")
+        
+        # Download the 'model_artifacts' folder
+        # This downloads it to a temporary local path
+        download_path = client.download_artifacts(run_id, "model_artifacts")
+        logging.info(f"Artifacts downloaded successfully to {download_path}")
+        
+        # Copy to our local backend/artifacts directory
+        local_artifacts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+        if os.path.exists(local_artifacts_dir):
+            shutil.rmtree(local_artifacts_dir)
+            
+        # The download_path points to the downloaded folder, inside it are the contents
+        shutil.copytree(download_path, local_artifacts_dir)
+        
+        # Reload artifacts into memory
+        app.state.artifacts = _load_artifacts()
+        
+        # Get metrics to return to the frontend
+        try:
+            run = client.get_run(run_id)
+            eval_results = run.data.metrics
+        except Exception:
+            eval_results = {}
+            
+        logging.info(f"Version {version} loaded successfully into memory.")
+        return {
+            "message": f"Version {version} loaded successfully",
+            "evaluation": eval_results
+        }
+    except Exception as e:
+        logging.error(f"Error loading model version {version}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
