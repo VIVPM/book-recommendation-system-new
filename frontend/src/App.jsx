@@ -255,7 +255,7 @@ export default function App() {
               </select>
               {selectedVersion !== loadedVersion && (
                 <div style={{ fontSize: '0.85rem', color: '#ff9800', lineHeight: '1.4' }}>
-                  ⚠️ To actually use this model for <strong>Inference</strong>, you must click Load Selected Model below.
+                  ⚠️ To use this model for <strong>Inference</strong>, you must click Load Selected Model below.
                 </div>
               )}
               <button
