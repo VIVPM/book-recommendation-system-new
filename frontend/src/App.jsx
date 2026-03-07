@@ -68,12 +68,15 @@ export default function App() {
   const [selectedBook, setSelectedBook] = useState('')
   const [recommendations, setRecommendations] = useState([])
 
+  const [mode, setMode] = useState('inference')
+
   const [loadingBooks, setLoadingBooks] = useState(true)
   const [loadingRec, setLoadingRec] = useState(false)
   const [training, setTraining] = useState(false)
   const [trainStage, setTrainStage] = useState(0)
   const [trainDone, setTrainDone] = useState(false)
   const [trainError, setTrainError] = useState(false)
+  const [evalResults, setEvalResults] = useState(null)
 
   const [recStatus, setRecStatus] = useState(null)
   const stageTimerRef = useRef(null)
@@ -139,6 +142,14 @@ export default function App() {
       const res = await fetch(`${API}/train`, { method: 'POST' })
       clearTimeout(stageTimerRef.current)
       if (!res.ok) throw new Error('Training failed')
+
+      const data = await res.json()
+      if (data.evaluation && !data.evaluation.error) {
+        setEvalResults(data.evaluation)
+      } else {
+        setEvalResults(null)
+      }
+
       setTrainStage(TRAIN_STAGES.length - 1)
       setTrainDone(true)
       // Refresh books after training
@@ -163,64 +174,113 @@ export default function App() {
       </header>
 
       <main className="container">
+        {/* ── Mode Toggle ── */}
+        <div className="mode-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+          <button className={`btn ${mode === 'training' ? 'btn-primary' : ''}`} onClick={() => setMode('training')}>
+            Training
+          </button>
+          <button className={`btn ${mode === 'inference' ? 'btn-primary' : ''}`} onClick={() => setMode('inference')}>
+            Inference
+          </button>
+        </div>
+
         {/* ── Controls ── */}
         <section className="controls">
           {/* Train */}
-          <div>
-            <button className="btn btn-train" onClick={handleTrain} disabled={training}>
-              {training ? <span className="spinner" /> : '🔧'}
-              {training ? 'Training...' : 'Train Recommender System'}
-            </button>
+          {mode === 'training' && (
+            <div>
+              <button className="btn btn-train" onClick={handleTrain} disabled={training}>
+                {training ? <span className="spinner" /> : '🔧'}
+                {training ? 'Training...' : 'Train Recommender System'}
+              </button>
 
-            {/* Stage-by-stage progress */}
-            {(training || trainDone || trainError) && (
-              <TrainingProgress
-                stageIndex={trainStage}
-                done={trainDone}
-                error={trainError}
-              />
-            )}
+              {/* Stage-by-stage progress */}
+              {(training || trainDone || trainError) && (
+                <TrainingProgress
+                  stageIndex={trainStage}
+                  done={trainDone}
+                  error={trainError}
+                />
+              )}
 
-            {trainDone && <div className="toast toast-success" style={{ marginTop: 12 }}>✅ Training completed successfully!</div>}
-            {trainError && <div className="toast toast-error" style={{ marginTop: 12 }}>❌ Training failed. Check Logs for details.</div>}
-          </div>
+              {trainDone && <div className="toast toast-success" style={{ marginTop: 12 }}>✅ Training completed successfully!</div>}
+              {trainError && <div className="toast toast-error" style={{ marginTop: 12 }}>❌ Training failed. Check Logs for details.</div>}
 
-          {/* Book selector */}
-          <p className="controls-title">🎯 Find Similar Books</p>
-          <div className="control-row">
-            <div className="select-wrapper">
-              <label htmlFor="book-select">Type or select a book</label>
-              {loadingBooks ? (
-                <div className="toast toast-loading">Loading book list...</div>
-              ) : books.length === 0 ? (
-                <div className="no-books-msg">
-                  ⚠️ No books found — please <strong>Train the Recommender System</strong> first.
+              {/* Evaluation Results */}
+              {trainDone && evalResults && (
+                <div className="eval-results" style={{ marginTop: 24, padding: 20, backgroundColor: 'var(--surface-color)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: 16, color: 'var(--primary-color)' }}>📊 Model Evaluation Report</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Users Tested</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem' }}>{evalResults.users_tested}</strong>
+                    </div>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Total Hits</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem' }}>{evalResults.total_hits}</strong>
+                    </div>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Hit Ratio @ {evalResults.recommendations_count}</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem', color: 'var(--success-color)' }}>{(evalResults.hit_ratio * 100).toFixed(2)}%</strong>
+                    </div>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Automated Precision</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem' }}>{(evalResults.precision * 100).toFixed(2)}%</strong>
+                    </div>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Automated Recall</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem' }}>{(evalResults.recall * 100).toFixed(2)}%</strong>
+                    </div>
+                    <div className="eval-metric">
+                      <span style={{ fontSize: '0.9rem', color: '#888' }}>Ranking Quality (NDCG)</span>
+                      <strong style={{ display: 'block', fontSize: '1.2rem' }}>{(evalResults.ndcg * 100).toFixed(2)}%</strong>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <select
-                  id="book-select"
-                  className="book-select"
-                  value={selectedBook}
-                  onChange={e => { setSelectedBook(e.target.value); setRecommendations([]); setRecStatus(null) }}
-                >
-                  {books.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
               )}
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={handleRecommend}
-              disabled={loadingRec || !selectedBook || loadingBooks || books.length === 0}
-            >
-              {loadingRec ? <span className="spinner" /> : '✨'}
-              {loadingRec ? 'Searching...' : 'Show Recommendations'}
-            </button>
-          </div>
-          <Toast type={recStatus?.type} message={recStatus?.message} />
+          )}
+
+          {/* Book selector */}
+          {mode === 'inference' && (
+            <>
+              <p className="controls-title">🎯 Find Similar Books</p>
+              <div className="control-row">
+                <div className="select-wrapper">
+                  <label htmlFor="book-select">Type or select a book</label>
+                  {loadingBooks ? (
+                    <div className="toast toast-loading">Loading book list...</div>
+                  ) : books.length === 0 ? (
+                    <div className="no-books-msg">
+                      ⚠️ No books found — please <strong>Train the Recommender System</strong> first.
+                    </div>
+                  ) : (
+                    <select
+                      id="book-select"
+                      className="book-select"
+                      value={selectedBook}
+                      onChange={e => { setSelectedBook(e.target.value); setRecommendations([]); setRecStatus(null) }}
+                    >
+                      {books.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  )}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleRecommend}
+                  disabled={loadingRec || !selectedBook || loadingBooks || books.length === 0}
+                >
+                  {loadingRec ? <span className="spinner" /> : '✨'}
+                  {loadingRec ? 'Searching...' : 'Show Recommendations'}
+                </button>
+              </div>
+              <Toast type={recStatus?.type} message={recStatus?.message} />
+            </>
+          )}
         </section>
 
         {/* ── Results ── */}
-        {recommendations.length > 0 && (
+        {mode === 'inference' && recommendations.length > 0 && (
           <section>
             <h2 className="recommendations-title">✨ Recommended for "{selectedBook}"</h2>
             <div className="books-grid">
@@ -231,7 +291,7 @@ export default function App() {
           </section>
         )}
 
-        {!loadingRec && recommendations.length === 0 && !recStatus && books.length > 0 && (
+        {mode === 'inference' && !loadingRec && recommendations.length === 0 && !recStatus && books.length > 0 && (
           <div className="empty-state">
             <div className="emoji">📖</div>
             <p>Select a book and click <strong>Show Recommendations</strong> to discover similar reads.</p>
