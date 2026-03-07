@@ -29,7 +29,7 @@ graph LR
 
     %% Serving Stage
     subgraph Deployment ["4. Inference & Serving"]
-        Registry -->|POST /models/load/{version}| API["FastAPI Backend\n(:8000)"]
+        Registry -->|POST /models/load/version| API["FastAPI Backend\n(:8000)"]
         API -->|/recommend| UI["React Dashboard\n(:5173)"]
         UI -->|Model Sidebar| Registry
         User["End User"] -->|Interact| UI
