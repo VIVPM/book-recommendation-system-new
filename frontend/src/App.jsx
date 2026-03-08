@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import './App.css'
 
 const API = 'http://localhost:8000'
+const DEFAULT_ZIP_URL = 'https://github.com/entbappy/Branching-tutorial/raw/master/books_data.zip'
 
 // Training stages matching the backend pipeline
 const TRAIN_STAGES = [
@@ -71,6 +72,7 @@ export default function App() {
   const [trainDone, setTrainDone] = useState(false)
   const [trainError, setTrainError] = useState(false)
   const [evalResults, setEvalResults] = useState(null)
+  const [zipUrl, setZipUrl] = useState(DEFAULT_ZIP_URL)
 
   // Model Versioning State
   const [modelVersions, setModelVersions] = useState([])
@@ -157,7 +159,11 @@ export default function App() {
     setTrainError(false)
 
     try {
-      const res = await fetch(`${API}/train`, { method: 'POST' })
+      const res = await fetch(`${API}/train`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataset_url: zipUrl.trim() || null }),
+      })
       if (!res.ok) throw new Error('Training failed')
 
       const data = await res.json()
@@ -289,6 +295,31 @@ export default function App() {
               <div>
                 <div style={{ marginBottom: '12px', fontSize: '1rem', fontWeight: '500', color: 'var(--primary-color)' }}>
                   {modelVersions.length === 0 ? '⚠️ Train your model first' : '⚠️ Retrain model if new data is present'}
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="zip-url-input" style={{ display: 'block', fontSize: '0.85rem', color: '#aaa', marginBottom: '6px' }}>
+                    📦 Dataset ZIP URL
+                  </label>
+                  <input
+                    id="zip-url-input"
+                    type="text"
+                    value={zipUrl}
+                    onChange={e => setZipUrl(e.target.value)}
+                    placeholder="https://... (zip file URL)"
+                    disabled={training}
+                    style={{
+                      width: '100%',
+                      fontSize: '0.85rem',
+                      fontFamily: 'monospace',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
                 </div>
                 <button className="btn btn-train" onClick={handleTrain} disabled={training}>
                   {training ? <span className="spinner" /> : '🔧'}
