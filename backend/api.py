@@ -2,8 +2,13 @@ import os
 import sys
 
 # Fix Windows charmap encoding error with dagshub/mlflow emoji output
+# Setting env vars alone is too late once Python has started; we must reconfigure streams directly.
 os.environ['PYTHONUTF8'] = '1'
 os.environ['PYTHONIOENCODING'] = 'utf-8'
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import pickle
 import numpy as np
@@ -90,6 +95,10 @@ class RecommendRequest(BaseModel):
     book_name: str
 
 
+class TrainRequest(BaseModel):
+    dataset_url: str | None = None  # Optional override for config.yaml ZIP URL
+
+
 class RecommendedBook(BaseModel):
     title: str
     poster_url: str
@@ -164,9 +173,10 @@ def recommend(request: RecommendRequest):
 
 
 @app.post("/train", summary="Trigger the full training pipeline")
-def train():
+def train(request: TrainRequest = TrainRequest()):
     """
     Runs data ingestion → validation → transformation → model training.
+    Optionally accepts a `dataset_url` in the request body to override config.yaml.
     This may take several minutes.
     """
     try:
@@ -177,7 +187,10 @@ def train():
             mlflow.set_tag("version", "1.0.0")
             
             pipeline = TrainingPipeline()
-            pipeline.start_training_pipeline()
+            # Use caller-supplied URL if provided, otherwise pipeline uses config.yaml default
+            if request.dataset_url:
+                logging.info(f"Using custom dataset URL: {request.dataset_url}")
+            pipeline.start_training_pipeline(dataset_url=request.dataset_url)
             
             # Reload artifacts into memory after training
             app.state.artifacts = _load_artifacts()

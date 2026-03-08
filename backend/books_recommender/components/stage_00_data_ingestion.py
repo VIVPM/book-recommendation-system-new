@@ -20,20 +20,20 @@ class DataIngestion:
             raise AppException(e, sys) from e
 
     
-    def download_data(self):
+    def download_data(self, dataset_url: str = None):
         """
-        Fetch the data from the url
-        
+        Fetch the data from the url.
+        If dataset_url is provided, it overrides the config.yaml URL.
         """
         try:
-            
-            dataset_url = self.data_ingestion_config.dataset_download_url
+            # Use caller-supplied URL if given, otherwise fall back to config
+            dataset_url = dataset_url or self.data_ingestion_config.dataset_download_url
             zip_download_dir = self.data_ingestion_config.raw_data_dir
             os.makedirs(zip_download_dir, exist_ok=True)
             data_file_name = os.path.basename(dataset_url)
             zip_file_path = os.path.join(zip_download_dir, data_file_name)
             logging.info(f"Downloading data from {dataset_url} into file {zip_file_path}")
-            urllib.request.urlretrieve(dataset_url,zip_file_path)
+            urllib.request.urlretrieve(dataset_url, zip_file_path)
             logging.info(f"Downloaded data from {dataset_url} into file {zip_file_path}")
             return zip_file_path
 
@@ -41,7 +41,7 @@ class DataIngestion:
             raise AppException(e, sys) from e
 
 
-    def extract_zip_file(self,zip_file_path: str):
+    def extract_zip_file(self, zip_file_path: str):
         """
         zip_file_path: str
         Extracts the zip file into the data directory
@@ -54,12 +54,13 @@ class DataIngestion:
                 zip_ref.extractall(ingested_dir)
             logging.info(f"Extracting zip file: {zip_file_path} into dir: {ingested_dir}")
         except Exception as e:
-            raise AppException(e,sys) from e
+            raise AppException(e, sys) from e
 
     
-    def initiate_data_ingestion(self):
+    def initiate_data_ingestion(self, dataset_url: str = None):
+        """Runs download + extraction. Pass dataset_url to override config.yaml."""
         try:
-            zip_file_path = self.download_data()
+            zip_file_path = self.download_data(dataset_url=dataset_url)
             self.extract_zip_file(zip_file_path=zip_file_path)
             logging.info(f"{'='*20}Data Ingestion log completed.{'='*20} \n\n")
         except Exception as e:

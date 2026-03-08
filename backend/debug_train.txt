@@ -1,0 +1,162 @@
+﻿Accessing as vivpm99
+Initialized MLflow to track repo "vivpm99/book-recommendation-system-new"
+Repository vivpm99/book-recommendation-system-new initialized!
+Pipeline OK
+Loading ML model and data...
+Successfully loaded everything!
+
+Testing the model by asking for 5 recommendations per user...
+python : 
+At line:1 char:1
++ python -c "
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], Rem 
+   oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Evaluating Users:   0%|          | 0/500 [00:00<?, ?it/s]
+Evaluating Users:   9%|9         | 45/500 [00:00<00:01, 
+445.63it/s]
+Evaluating Users:  18%|#8        | 90/500 [00:00<00:00, 
+422.23it/s]
+Evaluating Users:  27%|##6       | 133/500 [00:00<00:01, 
+366.00it/s]
+Evaluating Users:  34%|###4      | 171/500 [00:00<00:00, 
+358.52it/s]
+Evaluating Users:  49%|####8     | 244/500 [00:00<00:00, 
+476.42it/s]
+Evaluating Users:  59%|#####8    | 293/500 [00:00<00:00, 
+429.76it/s]
+Evaluating Users:  68%|######7   | 338/500 [00:01<00:00, 
+258.18it/s]
+Evaluating Users:  75%|#######4  | 373/500 [00:01<00:00, 
+228.87it/s]
+Evaluating Users:  80%|########  | 402/500 [00:01<00:00, 
+234.74it/s]
+Evaluating Users:  87%|########7 | 437/500 [00:01<00:00, 
+257.40it/s]
+Evaluating Users:  93%|#########3| 467/500 [00:01<00:00, 
+260.04it/s]
+Evaluating Users:  99%|#########9| 496/500 [00:01<00:00, 
+263.19it/s]
+Evaluating Users: 100%|##########| 500/500 [00:01<00:00, 
+296.29it/s]
+Traceback (most recent call last):
+  File "<string>", line 20, in <module>
+  File "D:\Data science\ML 
+Projects\book-recommendation-system-new\backend\evaluate.py", 
+line 159, in test_recommendation_system
+    print(f"  \u21b3 Meaning: For 
+{(final_hit_ratio*100):.2f}% of users, we successfully 
+guessed at least one of their favorite books.")
+  File "E:\python\Lib\encodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character 
+'\u21b3' in position 2: character maps to <undefined>
+
+During handling of the above exception, another exception 
+occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 13, in <module>
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\fluent.py", line 
+257, in __exit__
+    end_run(RunStatus.to_string(status))
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\fluent.py", line 
+548, in end_run
+    MlflowClient().set_terminated(last_active_run_id, status)
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\client.py", line 
+3506, in set_terminated
+    self._tracking_client.set_terminated(run_id, status, 
+end_time)
+  File "E:\python\Lib\site-packages\mlflow\tracking\_tracking_
+service\client.py", line 796, in set_terminated
+    self._log_url(run_id)
+  File "E:\python\Lib\site-packages\mlflow\tracking\_tracking_
+service\client.py", line 779, in _log_url
+    sys.stdout.write(f"\U0001f3c3 View run {run_name} at: 
+{run_url}\n")
+  File "E:\python\Lib\encodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character 
+'\U0001f3c3' in position 0: character maps to <undefined>
+Traceback (most recent call last):
+  File "<string>", line 20, in <module>
+  File "D:\Data science\ML 
+Projects\book-recommendation-system-new\backend\evaluate.py", 
+line 159, in test_recommendation_system
+    print(f"  \u21b3 Meaning: For 
+{(final_hit_ratio*100):.2f}% of users, we successfully 
+guessed at least one of their favorite books.")
+  File "E:\python\Lib\encodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character 
+'\u21b3' in position 2: character maps to <undefined>
+
+During handling of the above exception, another exception 
+occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 13, in <module>
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\fluent.py", line 
+257, in __exit__
+    end_run(RunStatus.to_string(status))
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\fluent.py", line 
+548, in end_run
+    MlflowClient().set_terminated(last_active_run_id, status)
+  File 
+"E:\python\Lib\site-packages\mlflow\tracking\client.py", line 
+3506, in set_terminated
+    self._tracking_client.set_terminated(run_id, status, 
+end_time)
+  File "E:\python\Lib\site-packages\mlflow\tracking\_tracking_
+service\client.py", line 796, in set_terminated
+    self._log_url(run_id)
+  File "E:\python\Lib\site-packages\mlflow\tracking\_tracking_
+service\client.py", line 779, in _log_url
+    sys.stdout.write(f"\U0001f3c3 View run {run_name} at: 
+{run_url}\n")
+  File "E:\python\Lib\encodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character 
+'\U0001f3c3' in position 0: character maps to <undefined>
+
+During handling of the above exception, another exception 
+occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 37, in <module>
+  File "E:\python\Lib\encodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character 
+'\U0001f3c3' in position 31: character maps to <undefined>
+
+========================================
+         EVALUATION REPORT CARD         
+========================================
+Users Tested: 473
+Number of hits: 199
+----------------------------------------
+Hit Ratio @ 5: 42.07%
+=== FULL TRACEBACK ===
+=== ERROR === 
