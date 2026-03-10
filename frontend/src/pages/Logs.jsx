@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './Logs.css'
 
-const API = 'http://localhost:8000'
+// Dynamically set API URL based on where the frontend is hosted
+const API = window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : `http://${window.location.hostname}:8000`
 const PAGE_SIZE = 10
 
 export default function LogsPage() {
