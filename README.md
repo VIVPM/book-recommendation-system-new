@@ -228,7 +228,13 @@ docker push VIVPM/bookapp:latest # Push to registry
 
 ## AWS EC2 Deployment
 
-> Port mapping required: **8000** (backend) and **5173** (frontend)
+### 1. Open Security Group Ports
+On your AWS EC2 Console, go to your instance's Security Group and add the following **Inbound Rules** (Custom TCP, Source: Anywhere `0.0.0.0/0`):
+- **Port 8000** (For the FastAPI Backend)
+- **Port 5173** (For the React Frontend)
+
+### 2. Install Docker & Clone Repository
+SSH into your EC2 instance and run:
 
 ```bash
 sudo apt-get update -y && sudo apt-get upgrade -y
@@ -240,11 +246,29 @@ newgrp docker
 
 git clone https://github.com/VIVPM/book-recommendation-system-new.git
 cd book-recommendation-system-new
-
-docker-compose up --build -d
 ```
 
----
+### 3. Setup DagsHub Authentication
+The headless Docker instance requires your DagsHub token to track MLflow experiments without a browser prompt.
+Create a local `.env` file (which is ignored by Git for security):
+
+```bash
+echo "DAGSHUB_USER_TOKEN=your_personal_access_token_here" > .env
+```
+
+### 4. Build and Start the Application
+To start the application in the background (detached mode):
+
+```bash
+# First time setup or after changing code (forces a rebuild)
+docker-compose up -d --build
+
+# To start the server normally without rebuilding
+docker-compose up -d
+
+# To stop the server
+docker-compose down
+```
 
 ## Model Evaluation
 
