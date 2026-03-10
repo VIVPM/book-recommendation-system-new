@@ -5,3 +5,12 @@ stage.py
 training pipeline.py
 main.py temporary
 app.py ui
+
+---
+
+**Docker and EC2 Deployment Rules:**
+
+1. `docker-compose up -d`: Starts the containers in "detached mode" (background). As long as your EC2 instance is powered on, your website remains online 24/7. Closing your SSH terminal window does not stop it.
+2. `docker-compose down`: Completely tears down the application. When you turn the instance back on, you have to SSH in again and manually type `docker-compose up -d` to bring the site back online.
+3. **Stopping the EC2 Instance**: Stopping the AWS instance turns the computer off completely. But because you didn't run `docker-compose down` first, Docker remembers you wanted the app running. When you start the AWS instance again, Docker usually starts the containers automatically. **However, your public IP will change.** Your UI will naturally pick up the new IP address because it checks `window.location.hostname`.
+4. `docker-compose up -d --build`: Docker creates "images" (snapshots) of your code during build time. If you run `git pull` on the EC2 server, you must run `--build` compulsorily to force Docker to take a new snapshot of your updated code.
