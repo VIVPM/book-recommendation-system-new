@@ -67,6 +67,19 @@ def _load_artifacts():
 @app.on_event("startup")
 async def startup():
     """Start server with empty artifacts. DagsHub models must be explicitly loaded."""
+    # Ensure uvicorn's access and error logs are saved to our log file
+    uvicorn_logger = logging.getLogger("uvicorn")
+    uvicorn_access = logging.getLogger("uvicorn.access")
+    uvicorn_error = logging.getLogger("uvicorn.error")
+    
+    # Grab the file handler we created in log.py
+    root_handlers = logging.getLogger().handlers
+    for handler in root_handlers:
+        if isinstance(handler, logging.FileHandler):
+            uvicorn_logger.addHandler(handler)
+            uvicorn_access.addHandler(handler)
+            uvicorn_error.addHandler(handler)
+
     logging.info("Starting up FastAPI server...")
     logging.info("Waiting for explicit model load from DagsHub via /models/load...")
     app.state.artifacts = (None, None, None, None)
