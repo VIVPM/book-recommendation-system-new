@@ -280,9 +280,9 @@ We test the model using **Leave-One-Out Offline Evaluation**. For a random sampl
 
 | Metric | Score | Explanation |
 |--------|-------|-------------|
-| **Hit Ratio @ 5** | `23.40%` | For 23%+ of users, the model guesses at least one of their other favourite books |
+| **Hit Ratio @ 5** | `42.07%` | For 42%+ of users, the model guesses at least one of their other favourite books |
 | **NDCG @ 5** | `29.62%` | Measures ranking quality — correct books appear near the top |
-| **Precision @ 5** | `8.64%` | ~9% of the 5 recommendations are exact user favourites |
+| **Precision @ 5** | `13.19%` | ~14% of the 5 recommendations are exact user favourites |
 | **Recall @ 5** | `6.48%` | The Top-5 list catches 6%+ of all books a user has ever loved |
 
 > **Note:** In recommendation systems with sparse data, true Precision/Recall is often much higher than measured, as users haven't read/rated most of the good recommendations yet — known as the **False Negative problem**.
