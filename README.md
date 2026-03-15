@@ -297,7 +297,7 @@ We test the model using **Leave-One-Out Offline Evaluation**. For a random sampl
 | `POST` | `/train` | Triggers the full 4-stage training pipeline |
 | `GET` | `/models` | Lists all versions from DagsHub Model Registry |
 | `POST` | `/models/load/{version}` | Downloads & loads a specific version for inference |
-| `GET` | `/logs` | Streams backend log files to the frontend |
+| `GET` | `/logs` | Displays backend log files to the frontend |
 
 Run the offline evaluation yourself:
 ```bash
