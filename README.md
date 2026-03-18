@@ -228,14 +228,34 @@ docker build -t VIVPM/bookapp-frontend:latest ./frontend
 docker run -d -p 5173:5173 VIVPM/bookapp-frontend:latest
 ```
 
-### Useful Docker commands
+### Push images to Docker Hub
+
+Once `image:` fields are set in `docker-compose.yaml`, you can build and push all images in two commands:
 
 ```bash
-docker ps                        # View running containers
-docker ps -a                     # View all containers (running + stopped/exited)
-docker-compose down              # Stop all services
-docker push VIVPM/bookapp:latest # Push to registry
+docker login                     # Login to Docker Hub (one time)
+docker-compose build             # Builds all images
+docker-compose push              # Pushes all images to Docker Hub
 ```
+
+Anyone with just the `docker-compose.yaml` file can then run:
+
+```bash
+docker-compose up -d             # Pulls images from Docker Hub and starts everything
+```
+
+### Useful Docker commands
+
+| Command | What it does |
+|---|---|
+| `docker-compose up -d --build` | Build images + start containers in background (use on first run or after code changes) |
+| `docker-compose up -d` | Start containers in background (no rebuild, use when no code changes) |
+| `docker-compose down` | Stop and remove all containers |
+| `docker-compose build` | Only build images (doesn't start containers) |
+| `docker-compose push` | Push all images to Docker Hub |
+| `docker ps` | View running containers |
+| `docker ps -a` | View all containers (running + stopped/exited) |
+| `docker login` | Login to Docker Hub |
 
 ---
 
