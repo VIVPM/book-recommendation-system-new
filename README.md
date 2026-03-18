@@ -87,6 +87,7 @@ book-recommendation-system-new/
 ## DagsHub + MLflow Integration
 
 This project uses **DagsHub** as a free, cloud-hosted **MLflow Tracking Server** to:
+
 - Track every training run (params, metrics, artifacts)
 - Store the entire `artifacts/` folder per experiment run
 - Register versioned models in the **Model Registry** (`Book_Recommender_Model v1, v2 ...`)
@@ -100,12 +101,13 @@ This project uses **DagsHub** as a free, cloud-hosted **MLflow Tracking Server**
 
 ### Configure Environment Variables
 
-Create a `backend/.env` file:
+Create a `.env` file **in the project root** (this is used by both `docker-compose.yaml` and local development):
 
 ```env
 MLFLOW_TRACKING_URI=https://dagshub.com/<your_username>/<your_repo>.mlflow
 MLFLOW_TRACKING_USERNAME=<your_username>
 MLFLOW_TRACKING_PASSWORD=<your_token>
+DAGSHUB_USER_TOKEN=<your_personal_access_token>
 ```
 
 > In `api.py`, replace `repo_owner` and `repo_name` in `dagshub.init()` with your values.
@@ -136,24 +138,32 @@ conda create -n books python=3.10 -y
 conda activate books
 ```
 
-### Step 3 — Install Python dependencies
+### Step 3 — Setup environment variables
+
+Create a `.env` file in the project root with your DagsHub credentials (see [Configure Environment Variables](#configure-environment-variables) above). This is required for training and model versioning to work.
+
+### Step 4 — Install Python dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-### Step 4 — Run the FastAPI backend
+### Step 5 — Run the FastAPI backend
 
 ```bash
 cd backend
-$env:PYTHONUTF8="1"   # Windows (fixes emoji encoding from dagshub)
+
+# Fix emoji encoding from dagshub (pick your OS):
+$env:PYTHONUTF8="1"             # Windows PowerShell
+# export PYTHONUTF8=1           # Linux / Mac
+
 uvicorn api:app --reload --port 8000
 ```
 
-API available at: `http://localhost:8000`  
+API available at: `http://localhost:8000`
 Swagger docs at: `http://localhost:8000/docs`
 
-### Step 5 — Run the React frontend (new terminal)
+### Step 6 — Run the React frontend (new terminal)
 
 ```bash
 cd frontend
@@ -192,25 +202,27 @@ newgrp docker
 git clone https://github.com/VIVPM/book-recommendation-system-new.git
 cd book-recommendation-system-new
 
-docker-compose up --build        # first time (builds images + starts)
+docker-compose up -d --build        # first time (builds images + starts) and whenever git pull is required
 # or
 docker-compose up -d             # run in background (detached)
 ```
 
-| Service  | URL |
-|----------|-----|
+| Service  | URL                   |
+| -------- | --------------------- |
 | Backend  | http://localhost:8000 |
 | Frontend | http://localhost:5173 |
 
 ### Run containers individually (without docker-compose)
 
 **Backend:**
+
 ```bash
 docker build -t VIVPM/bookapp-backend:latest ./backend
 docker run -d -p 8000:8000 VIVPM/bookapp-backend:latest
 ```
 
 **Frontend:**
+
 ```bash
 docker build -t VIVPM/bookapp-frontend:latest ./frontend
 docker run -d -p 5173:5173 VIVPM/bookapp-frontend:latest
@@ -220,6 +232,7 @@ docker run -d -p 5173:5173 VIVPM/bookapp-frontend:latest
 
 ```bash
 docker ps                        # View running containers
+docker ps -a                     # View all containers (running + stopped/exited)
 docker-compose down              # Stop all services
 docker push VIVPM/bookapp:latest # Push to registry
 ```
@@ -229,11 +242,14 @@ docker push VIVPM/bookapp:latest # Push to registry
 ## AWS EC2 Deployment
 
 ### 1. Open Security Group Ports
+
 On your AWS EC2 Console, go to your instance's Security Group and add the following **Inbound Rules** (Custom TCP, Source: Anywhere `0.0.0.0/0`):
+
 - **Port 8000** (For the FastAPI Backend)
 - **Port 5173** (For the React Frontend)
 
 ### 2. Install Docker & Clone Repository
+
 SSH into your EC2 instance and run:
 
 ```bash
@@ -249,14 +265,21 @@ cd book-recommendation-system-new
 ```
 
 ### 3. Setup DagsHub Authentication
-The headless Docker instance requires your DagsHub token to track MLflow experiments without a browser prompt.
-Create a local `.env` file (which is ignored by Git for security):
+
+The headless Docker instance requires your DagsHub credentials to track MLflow experiments without a browser prompt.
+Create a `.env` file in the project root (same format as [Configure Environment Variables](#configure-environment-variables)):
 
 ```bash
-echo "DAGSHUB_USER_TOKEN=your_personal_access_token_here" > .env
+cat > .env << 'EOF'
+MLFLOW_TRACKING_URI=https://dagshub.com/<your_username>/<your_repo>.mlflow
+MLFLOW_TRACKING_USERNAME=<your_username>
+MLFLOW_TRACKING_PASSWORD=<your_token>
+DAGSHUB_USER_TOKEN=<your_personal_access_token>
+EOF
 ```
 
 ### 4. Build and Start the Application
+
 To start the application in the background (detached mode):
 
 ```bash
@@ -274,32 +297,33 @@ docker-compose down
 
 The collaborative filtering model uses **K-Nearest Neighbors (KNN)** with **Cosine Similarity** to overcome the extreme sparsity of the Book-Crossing dataset.
 
-We test the model using **Leave-One-Out Offline Evaluation**. For a random sample of users, we take one book they highly rated (≥7/10), ask the model for 5 recommendations, and check if the model successfully recommends *other* books that the same user also highly rated.
+We test the model using **Leave-One-Out Offline Evaluation**. For a random sample of users, we take one book they highly rated (≥7/10), ask the model for 5 recommendations, and check if the model successfully recommends _other_ books that the same user also highly rated.
 
 ### Evaluation Results (Top-5 Recommendations)
 
-| Metric | Score | Explanation |
-|--------|-------|-------------|
+| Metric            | Score    | Explanation                                                                      |
+| ----------------- | -------- | -------------------------------------------------------------------------------- |
 | **Hit Ratio @ 5** | `42.07%` | For 42%+ of users, the model guesses at least one of their other favourite books |
-| **NDCG @ 5** | `29.62%` | Measures ranking quality — correct books appear near the top |
-| **Precision @ 5** | `13.19%` | ~14% of the 5 recommendations are exact user favourites |
-| **Recall @ 5** | `6.48%` | The Top-5 list catches 6%+ of all books a user has ever loved |
+| **NDCG @ 5**      | `29.62%` | Measures ranking quality — correct books appear near the top                     |
+| **Precision @ 5** | `13.19%` | ~14% of the 5 recommendations are exact user favourites                          |
+| **Recall @ 5**    | `6.48%`  | The Top-5 list catches 6%+ of all books a user has ever loved                    |
 
 > **Note:** In recommendation systems with sparse data, true Precision/Recall is often much higher than measured, as users haven't read/rated most of the good recommendations yet — known as the **False Negative problem**.
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check, reports if a model is loaded |
-| `GET` | `/books` | Returns all book names for the dropdown |
-| `POST` | `/recommend` | Returns 5 similar book recommendations |
-| `POST` | `/train` | Triggers the full 4-stage training pipeline |
-| `GET` | `/models` | Lists all versions from DagsHub Model Registry |
+| Method | Endpoint                 | Description                                        |
+| ------ | ------------------------ | -------------------------------------------------- |
+| `GET`  | `/health`                | Health check, reports if a model is loaded         |
+| `GET`  | `/books`                 | Returns all book names for the dropdown            |
+| `POST` | `/recommend`             | Returns 5 similar book recommendations             |
+| `POST` | `/train`                 | Triggers the full 4-stage training pipeline        |
+| `GET`  | `/models`                | Lists all versions from DagsHub Model Registry     |
 | `POST` | `/models/load/{version}` | Downloads & loads a specific version for inference |
-| `GET` | `/logs` | Displays backend log files to the frontend |
+| `GET`  | `/logs`                  | Displays backend log files to the frontend         |
 
 Run the offline evaluation yourself:
+
 ```bash
 python backend/evaluate.py
 ```
